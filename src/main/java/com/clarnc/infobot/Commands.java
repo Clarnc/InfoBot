@@ -5,7 +5,6 @@ import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.event.message.MessageCreateEvent;
 
-import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.util.HashMap;
@@ -17,69 +16,51 @@ public class Commands {
 
     public void setCommand(MessageCreateEvent event) {
         String command = event.getMessageContent();
-        long channelid = event.getChannel().getId();
+
+        long channelId = event.getChannel().getId();
         Map<String, Runnable> map = new HashMap<>();
-        String[] cmd = command.split(" ");
+        String[] args = command.split(" ");
         map.put("c!weather", () -> {
-            String secondarg = "";
-            if (cmd.length > 1) secondarg = cmd[1];
+            String query = "";
+            if (args.length > 1) query = args[1];
             try {
-                String weather = Weather.getWeather(secondarg);
-                Main.app.getTextChannelById(channelid).get().sendMessage(weather);
+                String weather = Weather.getWeather(query);
+                Main.app.getTextChannelById(channelId).get().sendMessage(weather);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
-        map.put("c!currency",() ->{
-            String ammount = null;
-        if(cmd.length<3) Main.app.getTextChannelById(channelid).get().sendMessage("Missing arguments");else {
-            try {
-                ammount = CurrencyConvertor.getCurrency(cmd);
-                Main.app.getTextChannelById(channelid).get().sendMessage(ammount);
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-        }
-
-
-
-        });
-        map.put("c!avatar",()->{
-            if(!(cmd.length>1)) {
-                MessageAuthor user = event.getMessageAuthor();
-                EmbedBuilder embedBuilder = new EmbedBuilder()
-                        .setTitle(user.getName())
-                        .setImage(user.getAvatar())
-                        .setColor(Color.green);
-                Main.app.getTextChannelById(channelid).get().sendMessage(embedBuilder);
-            }else {
+        map.put("c!currency", () -> {
+            if (args.length < 3) {
+                Main.app.getTextChannelById(channelId).get().sendMessage("Missing arguments");
+            } else {
                 try {
-                    String userbuiler1 = cmd[1].substring(2);
-                    String userbuiler2 = userbuiler1.substring(0,userbuiler1.length()-1);
-                    User user = Main.app.getUserById(userbuiler2).get();
-                    EmbedBuilder embedBuilder = new EmbedBuilder()
-                            .setTitle(user.getName())
-                            .setImage(user.getAvatar())
-                            .setColor(Color.green);
-                    Main.app.getTextChannelById(channelid).get().sendMessage(embedBuilder);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
+                    String amount = CurrencyConverter.getCurrency(args);
+                    Main.app.getTextChannelById(channelId).get().sendMessage(amount);
+                } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
         });
-        completecmd(cmd, map);
+
+        map.put("c!avatar", () -> {
+            var user = args.length > 1 ?
+                    event.getMessageAuthor().asUser().get() :
+                    event.getMessage().getMentionedUsers().get(0);
+
+            EmbedBuilder embedBuilder = new EmbedBuilder()
+                    .setTitle(user.getName())
+                    .setImage(user.getAvatar())
+                    .setColor(Color.green);
+            Main.app.getTextChannelById(channelId).get().sendMessage(embedBuilder);
+        });
+        runCommand(args, map);
     }
 
-    private void completecmd(String[] cmd, Map<String, Runnable> map) {
+    private void runCommand(String[] cmd, Map<String, Runnable> map) {
         if (map.containsKey(cmd[0])) {
             map.get(cmd[0]).run();
         }
-
-
     }
 }
 
